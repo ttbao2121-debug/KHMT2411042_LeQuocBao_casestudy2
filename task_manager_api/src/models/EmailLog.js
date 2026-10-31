@@ -2,13 +2,16 @@ const mongoose = require('mongoose');
 
 const emailLogSchema = new mongoose.Schema(
   {
-    to: { type: String, required: true },
+    taskId: { type: mongoose.Schema.Types.ObjectId, ref: 'Task', default: null },
+    recipientEmail: { type: String, required: true },
+    eventType: { type: String, default: 'general' },
     subject: { type: String, required: true },
-    body: { type: String, required: true },
-    status: { type: String, enum: ['sent', 'failed'], default: 'sent' },
-    error: { type: String, default: null },
+    status: { type: String, enum: ['pending', 'sent', 'failed'], default: 'pending' },
+    attempts: { type: Number, default: 0 },
+    errorMessage: { type: String, default: null },
+    sentAt: { type: Date, default: null },
   },
-  { timestamps: true }
+  { timestamps: { createdAt: true, updatedAt: false } }
 );
 
 module.exports = mongoose.model('EmailLog', emailLogSchema);

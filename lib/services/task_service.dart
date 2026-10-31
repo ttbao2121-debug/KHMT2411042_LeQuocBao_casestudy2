@@ -1,46 +1,59 @@
 import '../models/task.dart';
+import 'api_client.dart';
+import 'auth_service.dart';
 
 class TaskService {
   static final TaskService _instance = TaskService._internal();
   factory TaskService() => _instance;
   TaskService._internal();
 
-  final List<Task> _tasks = [];
+  final ApiClient _apiClient = ApiClient();
+  final AuthService _authService = AuthService();
+
+  String? get _token => _authService.token;
 
   Future<List<Task>> getTasks() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    return List.from(_tasks);
+    try {
+      final res = await _apiClient.get('/tasks', token: _token);
+      final rawList = (res['data'] ?? res) as List<dynamic>;
+      return rawList.map((item) => Task.fromJson(item as Map<String, dynamic>)).toList();
+    } catch (e) {
+      return [];
+    }
   }
 
   Future<Task?> getTaskById(String id) async {
-    await Future.delayed(const Duration(milliseconds: 200));
     try {
-      return _tasks.firstWhere((t) => t.id == id);
-    } catch (_) {
+      final res = await _apiClient.get('/tasks/$id', token: _token);
+      return Task.fromJson(res);
+    } catch (e) {
       return null;
     }
   }
 
-  Future<void> createTask(Task task) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    _tasks.insert(0, task); // Thêm vào đầu danh sách
+  Future<Task?> createTask(Task task) async {
+    try {
+      final res = await _apiClient.post('/tasks', task.toJson(), token: _token);
+      return Task.fromJson(res);
+    } catch (e) {
+      rethrow;
+    }
   }
 
-  Future<void> updateTask(Task updatedTask) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    final index = _tasks.indexWhere((t) => t.id == updatedTask.id);
-    if (index != -1) {
-      _tasks[index] = updatedTask;
+  Future<Task?> updateTask(Task updatedTask) async {
+    try {
+      final res = await _apiClient.put('/tasks/${updatedTask.id}', updatedTask.toJson(), token: _token);
+      return Task.fromJson(res);
+    } catch (e) {
+      rethrow;
     }
   }
 
   Future<void> deleteTask(String id) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    _tasks.removeWhere((t) => t.id == id);
-  }
-
-  Future<void> clearAllTasks() async {
-    await Future.delayed(const Duration(milliseconds: 200));
-    _tasks.clear();
+    try {
+      await _apiClient.delete('/tasks/$id', token: _token);
+    } catch (e) {
+      rethrow;
+    }
   }
 }

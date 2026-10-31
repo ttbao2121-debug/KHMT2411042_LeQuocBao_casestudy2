@@ -3,12 +3,15 @@ const Task = require('../models/Task');
 exports.getStatistics = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const total = await Task.countDocuments({ $or: [{ createdBy: userId }, { assignedTo: userId }] });
-    const pending = await Task.countDocuments({ status: 'pending', $or: [{ createdBy: userId }, { assignedTo: userId }] });
-    const inProgress = await Task.countDocuments({ status: 'inProgress', $or: [{ createdBy: userId }, { assignedTo: userId }] });
-    const completed = await Task.countDocuments({ status: 'completed', $or: [{ createdBy: userId }, { assignedTo: userId }] });
+    const filter = {
+      $or: [{ createdBy: userId }, { assigneeIds: userId }, { primaryAssigneeId: userId }],
+    };
+    const total = await Task.countDocuments(filter);
+    const todo = await Task.countDocuments({ status: 'todo', ...filter });
+    const inProgress = await Task.countDocuments({ status: 'in_progress', ...filter });
+    const completed = await Task.countDocuments({ status: 'completed', ...filter });
 
-    res.json({ total, pending, inProgress, completed });
+    res.json({ total, todo, inProgress, completed });
   } catch (error) {
     next(error);
   }

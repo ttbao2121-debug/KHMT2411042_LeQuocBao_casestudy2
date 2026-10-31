@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -15,6 +16,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _confirmPasswordController = TextEditingController();
   bool _isPasswordObscured = true;
   bool _isConfirmPasswordObscured = true;
+  bool _isLoading = false;
+  final AuthService _authService = AuthService();
 
   // Quy chuẩn Phối màu (Color Palette)
   static const Color primaryColor = Color(0xFFFB8C00); // Amber / Orange
@@ -34,15 +37,39 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  void _handleRegister() {
+  void _handleRegister() async {
     if (_formKey.currentState?.validate() ?? false) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Đang xử lý đăng ký tài khoản...'),
-          backgroundColor: primaryColor,
-        ),
-      );
-      Navigator.pushReplacementNamed(context, '/tasks');
+      setState(() => _isLoading = true);
+      try {
+        await _authService.register(
+          _nameController.text,
+          _emailController.text,
+          _passwordController.text,
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Đăng ký tài khoản thành công!'),
+              backgroundColor: primaryColor,
+            ),
+          );
+          Navigator.pushReplacementNamed(context, '/tasks');
+        }
+      } catch (e) {
+        if (mounted) {
+          final errorMsg = e.toString().replaceAll('Exception: ', '');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMsg),
+              backgroundColor: errorColor,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
     }
   }
 
@@ -354,7 +381,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ],
                       ),
                       child: ElevatedButton(
-                        onPressed: _handleRegister,
+                        onPressed: _isLoading ? null : _handleRegister,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: primaryColor,
                           foregroundColor: Colors.white,
@@ -363,14 +390,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: const Text(
-                          'Đăng ký',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2.5,
+                                ),
+                              )
+                            : const Text(
+                                'Đăng ký',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
                       ),
                     ),
                     const SizedBox(height: 24),

@@ -6,22 +6,30 @@ const User = require('../models/User');
 
 exports.assignTask = async (req, res, next) => {
   try {
-    const { taskId, assignedToUserId } = req.body;
-    const task = await Task.findByIdAndUpdate(taskId, { assignedTo: assignedToUserId }, { new: true });
+    const { taskId, assigneeIds, primaryAssigneeId } = req.body;
+    const updateData = {};
+    if (assigneeIds) updateData.assigneeIds = assigneeIds;
+    if (primaryAssigneeId) updateData.primaryAssigneeId = primaryAssigneeId;
+
+    const task = await Task.findByIdAndUpdate(taskId, updateData, { new: true });
     if (!task) return res.status(404).json({ message: 'Không tìm thấy công việc' });
 
-    const user = await User.findById(assignedToUserId);
-    if (user) {
-      await notificationService.createNotification(
-        assignedToUserId,
-        'Công việc mới được giao',
-        `Bạn được giao công việc "${task.title}".`
-      );
-      emailService.sendEmail(
-        user.email,
-        'Công việc mới được giao',
-        emailTemplates.taskAssignedTemplate(user.name, task.title)
-      );
+    const targetUserId = primaryAssigneeId || (assigneeIds && assigneeIds[0]);
+    if (targetUserId) {
+      const user = await User.findById(targetUserId);
+      if (user) {
+        await notificationService.createNotification(
+          user._id,
+          'Công việc mới được giao',
+          `Bạn được giao công việc "${task.title}".`,
+          task._id
+        );
+        emailService.sendEmail(
+          user.email,
+          'Công việc mới được giao',
+          emailTemplates.taskAssignedTemplate(user.fullName, task.title)
+        );
+      }
     }
 
     res.json({ message: 'Phân công công việc thành công', task });

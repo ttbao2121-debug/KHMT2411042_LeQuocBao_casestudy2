@@ -27,7 +27,6 @@ class AppStrings {
 }
 
 class AppConstants {
-  // Dành cho Android Emulator: 'http://10.0.2.2:5000/api'
-  // Dành cho Thiết bị thật / Web: 'http://<IP_MÁY_TÍNH>:5000/api'
-  static const String baseUrl = 'http://10.0.2.2:5000/api';
+  // Dành cho Máy ảo Android (Android Emulator) kết nối tới Backend Port 3000:
+  static const String baseUrl = 'http://10.0.2.2:3000/api';
 }

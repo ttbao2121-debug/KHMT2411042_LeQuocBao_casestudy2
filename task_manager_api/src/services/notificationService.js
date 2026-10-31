@@ -1,7 +1,7 @@
 const Notification = require('../models/Notification');
 
-exports.createNotification = async (userId, title, message) => {
-  return await Notification.create({ userId, title, message });
+exports.createNotification = async (userId, title, message, taskId = null, type = 'general') => {
+  return await Notification.create({ userId, taskId, type, title, message });
 };
 
 exports.getUserNotifications = async (userId) => {

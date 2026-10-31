@@ -3,10 +3,14 @@ const mongoose = require('mongoose');
 const taskShareSchema = new mongoose.Schema(
   {
     taskId: { type: mongoose.Schema.Types.ObjectId, ref: 'Task', required: true },
-    sharedWithUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    permission: { type: String, enum: ['readOnly', 'edit'], default: 'readOnly' },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    permission: { type: String, enum: ['viewer', 'editor'], default: 'viewer' },
+    sharedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   },
-  { timestamps: true }
+  { timestamps: { createdAt: true, updatedAt: false } }
 );
+
+// Unique compound index tránh bản ghi chia sẻ trùng nhau
+taskShareSchema.index({ taskId: 1, userId: 1 }, { unique: true });
 
 module.exports = mongoose.model('TaskShare', taskShareSchema);

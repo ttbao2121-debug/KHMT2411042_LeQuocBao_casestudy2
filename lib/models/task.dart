@@ -26,36 +26,58 @@ class Task {
   });
 
   factory Task.fromJson(Map<String, dynamic> json) {
+    final rawStatus = (json['status'] as String?)?.toLowerCase() ?? 'todo';
+    TaskStatus status;
+    if (rawStatus == 'completed') {
+      status = TaskStatus.completed;
+    } else if (rawStatus == 'in_progress' || rawStatus == 'inprogress') {
+      status = TaskStatus.inProgress;
+    } else {
+      status = TaskStatus.pending;
+    }
+
+    final rawPriority = (json['priority'] as String?)?.toLowerCase() ?? 'medium';
+    TaskPriority priority;
+    if (rawPriority == 'high') {
+      priority = TaskPriority.high;
+    } else if (rawPriority == 'low') {
+      priority = TaskPriority.low;
+    } else {
+      priority = TaskPriority.medium;
+    }
+
+    String createdById = '';
+    if (json['createdBy'] != null) {
+      if (json['createdBy'] is Map) {
+        createdById = (json['createdBy']['_id'] ?? json['createdBy']['id']) as String? ?? '';
+      } else {
+        createdById = json['createdBy'].toString();
+      }
+    }
+
     return Task(
-      id: json['id'] as String,
-      title: json['title'] as String,
-      description: json['description'] as String,
-      status: TaskStatus.values.firstWhere(
-        (e) => e.name == json['status'],
-        orElse: () => TaskStatus.pending,
-      ),
-      priority: TaskPriority.values.firstWhere(
-        (e) => e.name == json['priority'],
-        orElse: () => TaskPriority.medium,
-      ),
-      dueDate: DateTime.parse(json['dueDate'] as String),
-      assignedToUserId: json['assignedToUserId'] as String?,
-      createdByUserId: json['createdByUserId'] as String,
-      createdAt: DateTime.parse(json['createdAt'] as String),
+      id: (json['_id'] ?? json['id'] ?? '').toString(),
+      title: json['title'] as String? ?? '',
+      description: json['description'] as String? ?? '',
+      status: status,
+      priority: priority,
+      dueDate: json['dueDate'] != null ? DateTime.parse(json['dueDate'].toString()) : DateTime.now(),
+      createdByUserId: createdById,
+      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt'].toString()) : DateTime.now(),
     );
   }
 
   Map<String, dynamic> toJson() {
+    String statusStr = 'todo';
+    if (status == TaskStatus.completed) statusStr = 'completed';
+    if (status == TaskStatus.inProgress) statusStr = 'in_progress';
+
     return {
-      'id': id,
       'title': title,
       'description': description,
-      'status': status.name,
+      'status': statusStr,
       'priority': priority.name,
       'dueDate': dueDate.toIso8601String(),
-      'assignedToUserId': assignedToUserId,
-      'createdByUserId': createdByUserId,
-      'createdAt': createdAt.toIso8601String(),
     };
   }
 }
