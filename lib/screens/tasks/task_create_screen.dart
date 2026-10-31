@@ -38,7 +38,13 @@ class _TaskCreateScreenState extends State<TaskCreateScreen> {
       );
       await _taskService.createTask(newTask);
       if (mounted) {
-        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Tạo công việc thành công!'),
+            backgroundColor: AppColors.primary,
+          ),
+        );
+        Navigator.pop(context, true);
       }
     }
   }

@@ -58,33 +58,78 @@ class _TaskListScreenState extends State<TaskListScreen> {
             colors: [AppColors.gradientStart, AppColors.gradientEnd],
           ),
         ),
-        child: _isLoading
-            ? const LoadingView(message: 'Đang tải danh sách công việc...')
-            : _tasks.isEmpty
-                ? const Center(
-                    child: Text('Chưa có công việc nào', style: TextStyle(color: AppColors.textSecondary)),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    itemCount: _tasks.length,
-                    itemBuilder: (context, index) {
-                      final task = _tasks[index];
-                      return TaskCard(
-                        task: task,
-                        onTap: () {
-                          Navigator.pushNamed(context, '/task-detail', arguments: task.id);
-                        },
-                      );
-                    },
-                  ),
+        child: RefreshIndicator(
+          onRefresh: _loadTasks,
+          color: AppColors.primary,
+          child: _isLoading
+              ? const LoadingView(message: 'Đang tải danh sách công việc...')
+              : _tasks.isEmpty
+                  ? ListView(
+                      children: [
+                        const SizedBox(height: 120),
+                        Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(20),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withValues(alpha: 0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.assignment_outlined,
+                                  size: 64,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              const Text(
+                                'Chưa có công việc nào',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                'Nhấn nút "+" bên dưới để tạo công việc mới!',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      itemCount: _tasks.length,
+                      itemBuilder: (context, index) {
+                        final task = _tasks[index];
+                        return TaskCard(
+                          task: task,
+                          onTap: () async {
+                            await Navigator.pushNamed(context, '/task-detail', arguments: task.id);
+                            _loadTasks();
+                          },
+                        );
+                      },
+                    ),
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         child: const Icon(Icons.add),
         onPressed: () async {
-          await Navigator.pushNamed(context, '/task-create');
-          _loadTasks();
+          final result = await Navigator.pushNamed(context, '/task-create');
+          if (result == true) {
+            _loadTasks();
+          }
         },
       ),
     );

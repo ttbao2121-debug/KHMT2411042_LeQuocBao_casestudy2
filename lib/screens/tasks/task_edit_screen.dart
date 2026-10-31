@@ -59,7 +59,15 @@ class _TaskEditScreenState extends State<TaskEditScreen> {
           createdAt: _task!.createdAt,
         );
         await _taskService.updateTask(updated);
-        if (mounted) Navigator.pop(context);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Cập nhật công việc thành công!'),
+              backgroundColor: AppColors.primary,
+            ),
+          );
+          Navigator.pop(context, true);
+        }
       }
     }
   }
