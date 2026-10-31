@@ -27,5 +27,7 @@ class AppStrings {
 }
 
 class AppConstants {
-  static const String baseUrl = 'https://api.taskmanager.example.com';
+  // Dành cho Android Emulator: 'http://10.0.2.2:5000/api'
+  // Dành cho Thiết bị thật / Web: 'http://<IP_MÁY_TÍNH>:5000/api'
+  static const String baseUrl = 'http://10.0.2.2:5000/api';
 }
