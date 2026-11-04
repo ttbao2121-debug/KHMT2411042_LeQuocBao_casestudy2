@@ -17,12 +17,12 @@ class AppNotification {
 
   factory AppNotification.fromJson(Map<String, dynamic> json) {
     return AppNotification(
-      id: json['id'] as String,
-      userId: json['userId'] as String,
-      title: json['title'] as String,
-      message: json['message'] as String,
+      id: (json['_id'] ?? json['id'] ?? '').toString(),
+      userId: json['userId'] != null ? json['userId'].toString() : '',
+      title: json['title'] as String? ?? '',
+      message: json['message'] as String? ?? '',
       isRead: json['isRead'] as bool? ?? false,
-      createdAt: DateTime.parse(json['createdAt'] as String),
+      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt'].toString()) : DateTime.now(),
     );
   }
 

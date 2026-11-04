@@ -12,9 +12,25 @@ class TaskService {
 
   String? get _token => _authService.token;
 
-  Future<List<Task>> getTasks() async {
+  Future<List<Task>> getTasks({
+    String? scope,
+    String? status,
+    String? priority,
+    String? query,
+    String? sortBy,
+    String? order,
+  }) async {
     try {
-      final res = await _apiClient.get('/tasks', token: _token);
+      final params = <String>[];
+      if (scope != null && scope.isNotEmpty) params.add('scope=$scope');
+      if (status != null && status.isNotEmpty) params.add('status=$status');
+      if (priority != null && priority.isNotEmpty) params.add('priority=$priority');
+      if (query != null && query.isNotEmpty) params.add('q=${Uri.encodeComponent(query)}');
+      if (sortBy != null && sortBy.isNotEmpty) params.add('sortBy=$sortBy');
+      if (order != null && order.isNotEmpty) params.add('order=$order');
+
+      final queryString = params.isNotEmpty ? '?${params.join('&')}' : '';
+      final res = await _apiClient.get('/tasks$queryString', token: _token);
       final rawList = (res['data'] ?? res) as List<dynamic>;
       return rawList.map((item) => Task.fromJson(item as Map<String, dynamic>)).toList();
     } catch (e) {
@@ -52,6 +68,85 @@ class TaskService {
   Future<void> deleteTask(String id) async {
     try {
       await _apiClient.delete('/tasks/$id', token: _token);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // 6.4 Giao việc
+  Future<void> assignTask(String taskId, List<String> assigneeIds, String? primaryAssigneeId) async {
+    try {
+      await _apiClient.post('/tasks/$taskId/assignees', {
+        'assigneeIds': assigneeIds,
+        'primaryAssigneeId': primaryAssigneeId,
+      }, token: _token);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // 6.5 Chia sẻ
+  Future<List<dynamic>> getTaskShares(String taskId) async {
+    try {
+      final res = await _apiClient.get('/tasks/$taskId/shares', token: _token);
+      return (res['data'] ?? res) as List<dynamic>;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<void> shareTask(String taskId, List<String> userIds, String permission) async {
+    try {
+      await _apiClient.post('/tasks/$taskId/shares', {
+        'userIds': userIds,
+        'permission': permission,
+      }, token: _token);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> updateSharePermission(String taskId, String shareId, String permission) async {
+    try {
+      await _apiClient.patch('/tasks/$taskId/shares/$shareId', {
+        'permission': permission,
+      }, token: _token);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> revokeSharePermission(String taskId, String shareId) async {
+    try {
+      await _apiClient.delete('/tasks/$taskId/shares/$shareId', token: _token);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Mở rộng: Lịch sử hoạt động & Lịch sử Email
+  Future<List<dynamic>> getTaskActivities(String taskId) async {
+    try {
+      final res = await _apiClient.get('/tasks/$taskId/activities', token: _token);
+      return (res['data'] ?? res) as List<dynamic>;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<List<dynamic>> getTaskEmailLogs(String taskId) async {
+    try {
+      final res = await _apiClient.get('/tasks/$taskId/email-logs', token: _token);
+      return (res['data'] ?? res) as List<dynamic>;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<bool> retryEmail(String logId) async {
+    try {
+      await _apiClient.post('/email-logs/$logId/retry', {}, token: _token);
+      return true;
     } catch (e) {
       rethrow;
     }

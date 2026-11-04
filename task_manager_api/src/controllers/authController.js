@@ -68,3 +68,33 @@ exports.getMe = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.updateMe = async (req, res, next) => {
+  try {
+    const { fullName, avatarUrl } = req.body;
+    const user = await User.findByIdAndUpdate(req.user.id, { fullName, avatarUrl }, { new: true }).select('-passwordHash');
+    res.json(user);
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.changePassword = async (req, res, next) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'Không tìm thấy người dùng' });
+
+    const isMatch = await bcrypt.compare(oldPassword, user.passwordHash);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Mật khẩu cũ không chính xác' });
+    }
+
+    user.passwordHash = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    res.json({ message: 'Đổi mật khẩu thành công' });
+  } catch (error) {
+    next(error);
+  }
+};

@@ -1,41 +1,36 @@
 import '../models/notification.dart';
+import 'api_client.dart';
+import 'auth_service.dart';
 
 class NotificationService {
-  final List<AppNotification> _notifications = [
-    AppNotification(
-      id: 'n1',
-      userId: 'u1',
-      title: 'Công việc mới được giao',
-      message: 'Bạn được giao công việc "Thiết kế UI màn hình Đăng nhập".',
-      createdAt: DateTime.now().subtract(const Duration(hours: 2)),
-    ),
-    AppNotification(
-      id: 'n2',
-      userId: 'u1',
-      title: 'Nhắc nhở hạn chót',
-      message: 'Công việc "Xây dựng cấu trúc thư mục" sắp đến hạn chót.',
-      createdAt: DateTime.now().subtract(const Duration(hours: 5)),
-    ),
-  ];
+  static final NotificationService _instance = NotificationService._internal();
+  factory NotificationService() => _instance;
+  NotificationService._internal();
+
+  final ApiClient _apiClient = ApiClient();
+  final AuthService _authService = AuthService();
+
+  String? get _token => _authService.token;
 
   Future<List<AppNotification>> getNotifications() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    return List.from(_notifications);
+    try {
+      final res = await _apiClient.get('/notifications', token: _token);
+      final rawList = (res['data'] ?? res) as List<dynamic>;
+      return rawList.map((item) => AppNotification.fromJson(item as Map<String, dynamic>)).toList();
+    } catch (e) {
+      return [];
+    }
   }
 
   Future<void> markAsRead(String notificationId) async {
-    await Future.delayed(const Duration(milliseconds: 200));
-    final index = _notifications.indexWhere((n) => n.id == notificationId);
-    if (index != -1) {
-      final old = _notifications[index];
-      _notifications[index] = AppNotification(
-        id: old.id,
-        userId: old.userId,
-        title: old.title,
-        message: old.message,
-        isRead: true,
-        createdAt: old.createdAt,
-      );
-    }
+    try {
+      await _apiClient.patch('/notifications/$notificationId/read', {}, token: _token);
+    } catch (_) {}
+  }
+
+  Future<void> markAllAsRead() async {
+    try {
+      await _apiClient.patch('/notifications/read-all', {}, token: _token);
+    } catch (_) {}
   }
 }

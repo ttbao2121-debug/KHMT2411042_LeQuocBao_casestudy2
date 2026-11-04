@@ -5,10 +5,9 @@ const errorMiddleware = require('./middleware/errorMiddleware');
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const taskRoutes = require('./routes/taskRoutes');
-const assignmentRoutes = require('./routes/assignmentRoutes');
-const taskShareRoutes = require('./routes/taskShareRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const statisticsRoutes = require('./routes/statisticsRoutes');
+const emailLogRoutes = require('./routes/emailLogRoutes');
 
 const app = express();
 
@@ -23,10 +22,9 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/tasks', taskRoutes);
-app.use('/api/assignments', assignmentRoutes);
-app.use('/api/shares', taskShareRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/statistics', statisticsRoutes);
+app.use('/api/email-logs', emailLogRoutes);
 
 app.use(errorMiddleware);
 

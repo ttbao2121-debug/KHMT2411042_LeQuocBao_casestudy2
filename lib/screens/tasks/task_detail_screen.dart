@@ -17,6 +17,8 @@ class TaskDetailScreen extends StatefulWidget {
 class _TaskDetailScreenState extends State<TaskDetailScreen> {
   final TaskService _taskService = TaskService();
   Task? _task;
+  List<dynamic> _activities = [];
+  List<dynamic> _emailLogs = [];
   bool _isLoading = true;
 
   @override
@@ -30,9 +32,13 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
 
   Future<void> _loadTaskDetail(String id) async {
     final task = await _taskService.getTaskById(id);
+    final activities = await _taskService.getTaskActivities(id);
+    final emailLogs = await _taskService.getTaskEmailLogs(id);
     if (mounted) {
       setState(() {
         _task = task;
+        _activities = activities;
+        _emailLogs = emailLogs;
         _isLoading = false;
       });
     }
@@ -94,6 +100,24 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
           ),
         );
         Navigator.pop(context, true);
+      }
+    }
+  }
+
+  void _retryEmailLog(String logId) async {
+    try {
+      await _taskService.retryEmail(logId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đã gửi lại email thành công!'), backgroundColor: AppColors.primary),
+        );
+        _loadTaskDetail(_task!.id);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString().replaceAll('Exception: ', '')), backgroundColor: AppColors.error),
+        );
       }
     }
   }
@@ -169,29 +193,6 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                         ],
                       ),
                       const SizedBox(height: 24),
-                      const Divider(),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Thay đổi nhanh trạng thái:',
-                        style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textSecondary),
-                      ),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        children: TaskStatus.values.map((status) {
-                          final isSelected = _task!.status == status;
-                          String label = status == TaskStatus.pending
-                              ? 'Chờ xử lý'
-                              : (status == TaskStatus.inProgress ? 'Đang làm' : 'Hoàn thành');
-                          return ChoiceChip(
-                            label: Text(label),
-                            selected: isSelected,
-                            selectedColor: AppColors.primary.withValues(alpha: 0.2),
-                            onSelected: isSelected ? null : (_) => _updateStatus(status),
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 24),
                       Row(
                         children: [
                           Expanded(
@@ -225,6 +226,115 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 20),
+                      const Divider(),
+
+                      // Thay đổi trạng thái nhanh
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Thay đổi nhanh trạng thái:',
+                        style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textSecondary),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        children: TaskStatus.values.map((status) {
+                          final isSelected = _task!.status == status;
+                          String label = status == TaskStatus.pending
+                              ? 'Chờ xử lý'
+                              : (status == TaskStatus.inProgress ? 'Đang làm' : 'Hoàn thành');
+                          return ChoiceChip(
+                            label: Text(label),
+                            selected: isSelected,
+                            selectedColor: AppColors.primary.withValues(alpha: 0.2),
+                            onSelected: isSelected ? null : (_) => _updateStatus(status),
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 24),
+                      const Divider(),
+
+                      // Lịch sử hoạt động (Activity Log - Mở rộng)
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Lịch sử hoạt động:',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary),
+                      ),
+                      const SizedBox(height: 8),
+                      _activities.isEmpty
+                          ? const Text('Chưa có lịch sử hoạt động', style: TextStyle(color: AppColors.textSecondary))
+                          : ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: _activities.length,
+                              itemBuilder: (context, index) {
+                                final act = _activities[index];
+                                final action = act['action'] ?? '';
+                                final userObj = act['userId'] ?? {};
+                                final userName = userObj['fullName'] ?? 'Người dùng';
+                                final time = act['createdAt'] != null
+                                    ? DateFormatter.formatDateTime(DateTime.parse(act['createdAt'].toString()))
+                                    : '';
+
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 4),
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Icon(Icons.history, size: 16, color: AppColors.primary),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          '$userName: $action ($time)',
+                                          style: const TextStyle(fontSize: 13, color: AppColors.textPrimary),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                      const SizedBox(height: 24),
+                      const Divider(),
+
+                      // Lịch sử gửi Email (Email Log & Retry - Mở rộng)
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Lịch sử gửi Email:',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary),
+                      ),
+                      const SizedBox(height: 8),
+                      _emailLogs.isEmpty
+                          ? const Text('Chưa có email nào được gửi', style: TextStyle(color: AppColors.textSecondary))
+                          : ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: _emailLogs.length,
+                              itemBuilder: (context, index) {
+                                final log = _emailLogs[index];
+                                final logId = log['_id']?.toString() ?? '';
+                                final email = log['recipientEmail'] ?? '';
+                                final subject = log['subject'] ?? '';
+                                final status = log['status'] ?? 'pending';
+                                final isFailed = status == 'failed';
+
+                                return Card(
+                                  margin: const EdgeInsets.symmetric(vertical: 4),
+                                  child: ListTile(
+                                    dense: true,
+                                    title: Text('$subject -> $email', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                                    subtitle: Text('Trạng thái: ${status.toUpperCase()}'),
+                                    trailing: isFailed
+                                        ? TextButton.icon(
+                                            icon: const Icon(Icons.refresh, size: 16, color: AppColors.error),
+                                            label: const Text('Thử lại', style: TextStyle(color: AppColors.error, fontSize: 12)),
+                                            onPressed: () => _retryEmailLog(logId),
+                                          )
+                                        : const Icon(Icons.check_circle, size: 18, color: Colors.green),
+                                  ),
+                                );
+                              },
+                            ),
                     ],
                   ),
                 ),

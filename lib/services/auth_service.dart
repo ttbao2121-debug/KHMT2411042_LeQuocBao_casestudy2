@@ -13,6 +13,30 @@ class AuthService {
   User? get currentUser => _currentUser;
   String? get token => _token;
 
+  Future<User?> fetchCurrentUser() async {
+    if (_token == null) return _currentUser;
+    try {
+      final res = await _apiClient.get('/auth/me', token: _token);
+      _currentUser = User.fromJson(res);
+      return _currentUser;
+    } catch (e) {
+      return _currentUser;
+    }
+  }
+
+  void setCurrentUserName(String newName, {String? avatarUrl}) {
+    if (_currentUser != null) {
+      _currentUser = User(
+        id: _currentUser!.id,
+        name: newName,
+        email: _currentUser!.email,
+        avatarUrl: avatarUrl ?? _currentUser!.avatarUrl,
+        role: _currentUser!.role,
+        createdAt: _currentUser!.createdAt,
+      );
+    }
+  }
+
   Future<bool> login(String email, String password) async {
     try {
       final res = await _apiClient.post('/auth/login', {

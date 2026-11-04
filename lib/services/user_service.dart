@@ -1,38 +1,61 @@
 import '../models/user.dart';
+import 'api_client.dart';
+import 'auth_service.dart';
 
 class UserService {
-  final List<User> _users = [
-    User(
-      id: 'u1',
-      name: 'Nguyen Van A',
-      email: 'nguyenvana@gmail.com',
-      createdAt: DateTime.now().subtract(const Duration(days: 30)),
-    ),
-    User(
-      id: 'u2',
-      name: 'Tran Thi B',
-      email: 'tranthib@gmail.com',
-      createdAt: DateTime.now().subtract(const Duration(days: 20)),
-    ),
-    User(
-      id: 'u3',
-      name: 'Le Van C',
-      email: 'levanc@gmail.com',
-      createdAt: DateTime.now().subtract(const Duration(days: 10)),
-    ),
-  ];
+  static final UserService _instance = UserService._internal();
+  factory UserService() => _instance;
+  UserService._internal();
 
-  Future<List<User>> getUsers() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    return List.from(_users);
+  final ApiClient _apiClient = ApiClient();
+  final AuthService _authService = AuthService();
+
+  String? get _token => _authService.token;
+
+  Future<List<User>> searchUsers(String query) async {
+    try {
+      final res = await _apiClient.get('/users/search?q=${Uri.encodeComponent(query)}', token: _token);
+      final rawList = (res['data'] ?? res) as List<dynamic>;
+      return rawList.map((item) => User.fromJson(item as Map<String, dynamic>)).toList();
+    } catch (e) {
+      return [];
+    }
   }
 
   Future<User?> getUserById(String id) async {
-    await Future.delayed(const Duration(milliseconds: 200));
     try {
-      return _users.firstWhere((u) => u.id == id);
-    } catch (_) {
+      final res = await _apiClient.get('/users/$id', token: _token);
+      return User.fromJson(res);
+    } catch (e) {
       return null;
+    }
+  }
+
+  Future<bool> updateProfile(String fullName, String? avatarUrl) async {
+    try {
+      await _apiClient.put('/auth/me', {
+        'fullName': fullName.trim(),
+        'avatarUrl': avatarUrl ?? '',
+      }, token: _token);
+
+      // Cập nhật thông tin người dùng lưu trong AuthService
+      _authService.setCurrentUserName(fullName.trim(), avatarUrl: avatarUrl);
+      await _authService.fetchCurrentUser();
+      return true;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<bool> changePassword(String oldPassword, String newPassword) async {
+    try {
+      await _apiClient.put('/auth/change-password', {
+        'oldPassword': oldPassword,
+        'newPassword': newPassword,
+      }, token: _token);
+      return true;
+    } catch (e) {
+      rethrow;
     }
   }
 }

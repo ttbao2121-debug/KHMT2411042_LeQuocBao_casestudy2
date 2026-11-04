@@ -98,6 +98,36 @@ class ApiClient {
     }
   }
 
+  Future<Map<String, dynamic>> patch(String endpoint, Map<String, dynamic> body, {String? token}) async {
+    final url = Uri.parse('$baseUrl$endpoint');
+    final headers = {
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+
+    try {
+      final response = await http.patch(
+        url,
+        headers: headers,
+        body: jsonEncode(body),
+      );
+
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return data;
+      } else {
+        final msg = data['message'] ?? 'Lỗi cập nhật dữ liệu (${response.statusCode})';
+        throw Exception(msg);
+      }
+    } catch (e) {
+      if (e is Exception && !e.toString().contains('ClientException')) {
+        rethrow;
+      }
+      throw Exception('Không thể kết nối đến máy chủ Backend.');
+    }
+  }
+
   Future<Map<String, dynamic>> delete(String endpoint, {String? token}) async {
     final url = Uri.parse('$baseUrl$endpoint');
     final headers = {

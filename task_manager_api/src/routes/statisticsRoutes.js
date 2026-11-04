@@ -3,6 +3,10 @@ const router = express.Router();
 const statisticsController = require('../controllers/statisticsController');
 const authMiddleware = require('../middleware/authMiddleware');
 
-router.get('/', authMiddleware, statisticsController.getStatistics);
+router.use(authMiddleware);
+
+router.get('/tasks', statisticsController.getTaskStatistics);
+router.get('/assignments', statisticsController.getAssignmentStatistics);
+router.get('/deadlines', statisticsController.getDeadlineStatistics);
 
 module.exports = router;

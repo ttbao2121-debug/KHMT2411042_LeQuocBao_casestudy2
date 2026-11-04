@@ -3,6 +3,7 @@ dotenv.config();
 
 const app = require('./app');
 const connectDB = require('./config/database');
+const cronService = require('./services/cronService');
 
 connectDB();
 
@@ -10,4 +11,5 @@ const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
+  cronService.initCronJobs();
 });
