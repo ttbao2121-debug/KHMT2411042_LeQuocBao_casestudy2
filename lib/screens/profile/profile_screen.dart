@@ -87,6 +87,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _showChangePasswordDialog() {
     final oldPassController = TextEditingController();
     final newPassController = TextEditingController();
+    final confirmPassController = TextEditingController();
 
     showDialog(
       context: context,
@@ -106,6 +107,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               obscureText: true,
               decoration: const InputDecoration(labelText: 'Mật khẩu mới'),
             ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: confirmPassController,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'Nhập lại mật khẩu mới'),
+            ),
           ],
         ),
         actions: [
@@ -115,11 +122,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           ElevatedButton(
             onPressed: () async {
-              try {
-                await _userService.changePassword(
-                  oldPassController.text,
-                  newPassController.text,
+              final oldPass = oldPassController.text;
+              final newPass = newPassController.text;
+              final confirmPass = confirmPassController.text;
+
+              if (oldPass.isEmpty || newPass.isEmpty || confirmPass.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Vui lòng nhập đầy đủ các trường'), backgroundColor: AppColors.error),
                 );
+                return;
+              }
+
+              if (newPass.length < 6) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Mật khẩu mới phải có ít nhất 6 ký tự'), backgroundColor: AppColors.error),
+                );
+                return;
+              }
+
+              if (newPass != confirmPass) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Mật khẩu xác nhận không trùng khớp'), backgroundColor: AppColors.error),
+                );
+                return;
+              }
+
+              try {
+                await _userService.changePassword(oldPass, newPass);
                 if (mounted) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
