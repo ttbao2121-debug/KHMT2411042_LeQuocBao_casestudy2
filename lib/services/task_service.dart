@@ -1,46 +1,139 @@
 import '../models/task.dart';
+import 'api_client.dart';
+import 'auth_service.dart';
 
 class TaskService {
   static final TaskService _instance = TaskService._internal();
   factory TaskService() => _instance;
   TaskService._internal();
 
-  final List<Task> _tasks = [];
+  final ApiClient _apiClient = ApiClient();
+  final AuthService _authService = AuthService();
 
-  Future<List<Task>> getTasks() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    return List.from(_tasks);
+  String? get _token => _authService.token;
+
+  Future<List<Task>> getTasks({String? scope, String? status, String? search}) async {
+    try {
+      final queryParams = <String>[];
+      if (scope != null && scope.isNotEmpty) queryParams.add('scope=$scope');
+      if (status != null && status.isNotEmpty) queryParams.add('status=$status');
+      if (search != null && search.isNotEmpty) queryParams.add('search=${Uri.encodeComponent(search)}');
+
+      final queryString = queryParams.isNotEmpty ? '?${queryParams.join('&')}' : '';
+      final res = await _apiClient.get('/tasks$queryString', token: _token);
+
+      final rawList = (res['data'] ?? res) as List<dynamic>;
+      return rawList.map((item) => Task.fromJson(item as Map<String, dynamic>)).toList();
+    } catch (e) {
+      return [];
+    }
   }
 
   Future<Task?> getTaskById(String id) async {
-    await Future.delayed(const Duration(milliseconds: 200));
     try {
-      return _tasks.firstWhere((t) => t.id == id);
-    } catch (_) {
+      final res = await _apiClient.get('/tasks/$id', token: _token);
+      return Task.fromJson(res);
+    } catch (e) {
       return null;
     }
   }
 
   Future<void> createTask(Task task) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    _tasks.insert(0, task); // Thêm vào đầu danh sách
+    try {
+      await _apiClient.post('/tasks', task.toJson(), token: _token);
+    } catch (e) {
+      rethrow;
+    }
   }
 
   Future<void> updateTask(Task updatedTask) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    final index = _tasks.indexWhere((t) => t.id == updatedTask.id);
-    if (index != -1) {
-      _tasks[index] = updatedTask;
+    try {
+      await _apiClient.put('/tasks/${updatedTask.id}', updatedTask.toJson(), token: _token);
+    } catch (e) {
+      rethrow;
     }
   }
 
   Future<void> deleteTask(String id) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    _tasks.removeWhere((t) => t.id == id);
+    try {
+      await _apiClient.delete('/tasks/$id', token: _token);
+    } catch (e) {
+      rethrow;
+    }
   }
 
-  Future<void> clearAllTasks() async {
-    await Future.delayed(const Duration(milliseconds: 200));
-    _tasks.clear();
+  Future<void> assignTask(String taskId, List<String> assigneeIds, String? primaryAssigneeId) async {
+    try {
+      await _apiClient.post('/tasks/$taskId/assignees', {
+        'assigneeIds': assigneeIds,
+        if (primaryAssigneeId != null) 'primaryAssigneeId': primaryAssigneeId,
+      }, token: _token);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> shareTask(String taskId, List<String> userIds, String permission) async {
+    try {
+      await _apiClient.post('/tasks/$taskId/shares', {
+        'userIds': userIds,
+        'permission': permission,
+      }, token: _token);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<List<dynamic>> getTaskShares(String taskId) async {
+    try {
+      final res = await _apiClient.get('/tasks/$taskId/shares', token: _token);
+      return (res['data'] ?? res) as List<dynamic>;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<void> updateSharePermission(String taskId, String shareId, String permission) async {
+    try {
+      await _apiClient.patch('/tasks/$taskId/shares/$shareId', {
+        'permission': permission,
+      }, token: _token);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> revokeSharePermission(String taskId, String shareId) async {
+    try {
+      await _apiClient.delete('/tasks/$taskId/shares/$shareId', token: _token);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<List<dynamic>> getTaskActivities(String taskId) async {
+    try {
+      final res = await _apiClient.get('/tasks/$taskId/activities', token: _token);
+      return (res['data'] ?? res) as List<dynamic>;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<List<dynamic>> getTaskEmailLogs(String taskId) async {
+    try {
+      final res = await _apiClient.get('/tasks/$taskId/email-logs', token: _token);
+      return (res['data'] ?? res) as List<dynamic>;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<void> retryEmail(String logId) async {
+    try {
+      await _apiClient.post('/email-logs/$logId/retry', {}, token: _token);
+    } catch (e) {
+      rethrow;
+    }
   }
 }
