@@ -1,34 +1,129 @@
 import '../models/user.dart';
+import 'api_client.dart';
 
 class AuthService {
+  static final AuthService _instance = AuthService._internal();
+  factory AuthService() => _instance;
+  AuthService._internal();
+
+  final ApiClient _apiClient = ApiClient();
   User? _currentUser;
+  String? _token;
 
   User? get currentUser => _currentUser;
+  String? get token => _token;
 
-  Future<bool> login(String email, String password) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    _currentUser = User(
-      id: 'u1',
-      name: 'Nguyen Van A',
-      email: email,
-      createdAt: DateTime.now(),
-    );
-    return true;
+  Future<User?> fetchCurrentUser() async {
+    if (_token == null) return _currentUser;
+    try {
+      final res = await _apiClient.get('/auth/me', token: _token);
+      _currentUser = User.fromJson(res);
+      return _currentUser;
+    } catch (e) {
+      return _currentUser;
+    }
   }
 
-  Future<bool> register(String name, String email, String password) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    _currentUser = User(
-      id: 'u_${DateTime.now().millisecondsSinceEpoch}',
-      name: name,
-      email: email,
-      createdAt: DateTime.now(),
-    );
-    return true;
+  void setCurrentUserName(String newName, {String? avatarUrl}) {
+    if (_currentUser != null) {
+      _currentUser = User(
+        id: _currentUser!.id,
+        name: newName,
+        email: _currentUser!.email,
+        avatarUrl: avatarUrl ?? _currentUser!.avatarUrl,
+        role: _currentUser!.role,
+        createdAt: _currentUser!.createdAt,
+      );
+    }
+  }
+
+  Future<bool> login(String email, String password) async {
+    try {
+      final res = await _apiClient.post('/auth/login', {
+        'email': email.trim(),
+        'password': password,
+      });
+
+      if (res['token'] != null) {
+        _token = res['token'] as String;
+        final userData = res['user'] as Map<String, dynamic>;
+        _currentUser = User(
+          id: userData['id'] as String? ?? '',
+          name: userData['fullName'] as String? ?? (userData['name'] as String? ?? ''),
+          email: userData['email'] as String? ?? email,
+          createdAt: DateTime.now(),
+        );
+        return true;
+      }
+      throw Exception('Không nhận được token từ hệ thống');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<bool> sendRegisterOtp(String email) async {
+    try {
+      await _apiClient.post('/auth/send-register-otp', {
+        'email': email.trim(),
+      });
+      return true;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<bool> register(String name, String email, String password, {String? otp}) async {
+    try {
+      final res = await _apiClient.post('/auth/register', {
+        'fullName': name.trim(),
+        'email': email.trim(),
+        'password': password,
+        if (otp != null && otp.isNotEmpty) 'otp': otp.trim(),
+      });
+
+      if (res['token'] != null) {
+        _token = res['token'] as String;
+        final userData = res['user'] as Map<String, dynamic>;
+        _currentUser = User(
+          id: userData['id'] as String? ?? '',
+          name: userData['fullName'] as String? ?? name,
+          email: userData['email'] as String? ?? email,
+          createdAt: DateTime.now(),
+        );
+        return true;
+      }
+      throw Exception('Đăng ký tài khoản không thành công');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<bool> forgotPassword(String email) async {
+    try {
+      await _apiClient.post('/auth/forgot-password', {
+        'email': email.trim(),
+      });
+      return true;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<bool> resetPassword(String email, String otp, String newPassword) async {
+    try {
+      await _apiClient.post('/auth/reset-password', {
+        'email': email.trim(),
+        'otp': otp.trim(),
+        'newPassword': newPassword,
+      });
+      return true;
+    } catch (e) {
+      rethrow;
+    }
   }
 
   Future<void> logout() async {
-    await Future.delayed(const Duration(milliseconds: 200));
     _currentUser = null;
+    _token = null;
   }
 }
