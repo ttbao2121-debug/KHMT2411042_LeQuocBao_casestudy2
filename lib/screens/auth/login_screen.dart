@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,6 +13,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isPasswordObscured = true;
+  bool _isLoading = false;
+  final AuthService _authService = AuthService();
 
   // Quy chuẩn Phối màu (Color Palette)
   static const Color primaryColor = Color(0xFFFB8C00); // Amber / Orange
@@ -29,20 +32,45 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _handleLogin() {
+  void _handleLogin() async {
     if (_formKey.currentState?.validate() ?? false) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Đang xử lý đăng nhập...'),
-          backgroundColor: primaryColor,
-        ),
-      );
-      Navigator.pushReplacementNamed(context, '/tasks');
+      setState(() => _isLoading = true);
+      try {
+        await _authService.login(
+          _emailController.text,
+          _passwordController.text,
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Đăng nhập thành công!'),
+              backgroundColor: primaryColor,
+            ),
+          );
+          Navigator.pushReplacementNamed(context, '/tasks');
+        }
+      } catch (e) {
+        if (mounted) {
+          final errorMsg = e.toString().replaceAll('Exception: ', '');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMsg),
+              backgroundColor: errorColor,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -81,22 +109,18 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    const Text(
+                    Text(
                       'TaskManager',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
+                      style: textTheme.displayMedium?.copyWith(
                         color: textPrimary,
-                        letterSpacing: 0.5,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
+                    Text(
                       'Chào mừng bạn trở lại! Hãy đăng nhập để quản lý công việc hiệu quả.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 14,
+                      style: textTheme.bodyMedium?.copyWith(
                         color: textSecondary,
                         height: 1.4,
                       ),
@@ -110,10 +134,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
-                      style: const TextStyle(color: textPrimary, fontSize: 15),
+                      style: textTheme.bodyLarge?.copyWith(color: textPrimary),
                       decoration: InputDecoration(
                         hintText: 'Nhập email của bạn',
-                        hintStyle: const TextStyle(color: textSecondary, fontSize: 14),
+                        hintStyle: textTheme.bodyMedium?.copyWith(color: textSecondary),
                         prefixIcon: const Icon(
                           Icons.email_outlined,
                           color: primaryColor,
@@ -161,10 +185,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     TextFormField(
                       controller: _passwordController,
                       obscureText: _isPasswordObscured,
-                      style: const TextStyle(color: textPrimary, fontSize: 15),
+                      style: textTheme.bodyLarge?.copyWith(color: textPrimary),
                       decoration: InputDecoration(
                         hintText: 'Nhập mật khẩu',
-                        hintStyle: const TextStyle(color: textSecondary, fontSize: 14),
+                        hintStyle: textTheme.bodyMedium?.copyWith(color: textSecondary),
                         prefixIcon: const Icon(
                           Icons.lock_outlined,
                           color: primaryColor,
@@ -226,24 +250,17 @@ class _LoginScreenState extends State<LoginScreen> {
                       alignment: Alignment.centerRight,
                       child: TextButton(
                         onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Tính năng quên mật khẩu đang phát triển'),
-                            ),
-                          );
+                          Navigator.pushNamed(context, '/forgot-password');
                         },
                         style: TextButton.styleFrom(
                           padding: EdgeInsets.zero,
                           minimumSize: Size.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
-                        child: const Text(
+                        child: Text(
                           'Quên mật khẩu?',
-                          style: TextStyle(
+                          style: textTheme.labelLarge?.copyWith(
                             color: primaryColor,
-                            fontWeight: FontWeight.w500,
-                            fontStyle: FontStyle.italic,
-                            fontSize: 14,
                           ),
                         ),
                       ),
@@ -267,7 +284,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ],
                       ),
                       child: ElevatedButton(
-                        onPressed: _handleLogin,
+                        onPressed: _isLoading ? null : _handleLogin,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: primaryColor,
                           foregroundColor: Colors.white,
@@ -276,14 +293,22 @@ class _LoginScreenState extends State<LoginScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: const Text(
-                          'Đăng nhập',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2.5,
+                                ),
+                              )
+                            : Text(
+                                'Đăng nhập',
+                                style: textTheme.labelLarge?.copyWith(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                ),
+                              ),
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -292,23 +317,20 @@ class _LoginScreenState extends State<LoginScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text(
+                        Text(
                           'Chưa có tài khoản? ',
-                          style: TextStyle(
+                          style: textTheme.bodyMedium?.copyWith(
                             color: textSecondary,
-                            fontSize: 14,
                           ),
                         ),
                         GestureDetector(
                           onTap: () {
                             Navigator.pushNamed(context, '/register');
                           },
-                          child: const Text(
+                          child: Text(
                             'Đăng ký ngay',
-                            style: TextStyle(
+                            style: textTheme.labelLarge?.copyWith(
                               color: primaryColor,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
                             ),
                           ),
                         ),

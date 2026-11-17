@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'screens/assignment/assign_task_screen.dart';
+import 'screens/auth/forgot_password_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
 import 'screens/notifications/notification_screen.dart';
@@ -9,6 +10,7 @@ import 'screens/tasks/task_create_screen.dart';
 import 'screens/tasks/task_detail_screen.dart';
 import 'screens/tasks/task_edit_screen.dart';
 import 'screens/tasks/task_list_screen.dart';
+import 'theme/app_theme.dart';
 import 'utils/constants.dart';
 
 class TaskManagerApp extends StatelessWidget {
@@ -19,20 +21,12 @@ class TaskManagerApp extends StatelessWidget {
     return MaterialApp(
       title: AppStrings.appName,
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: AppColors.primary,
-          primary: AppColors.primary,
-          error: AppColors.error,
-          surface: Colors.white,
-        ),
-        scaffoldBackgroundColor: Colors.white,
-      ),
+      theme: AppTheme.lightTheme,
       initialRoute: '/login',
       routes: {
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
+        '/forgot-password': (context) => const ForgotPasswordScreen(),
         '/tasks': (context) => const TaskListScreen(),
         '/task-detail': (context) => const TaskDetailScreen(),
         '/task-create': (context) => const TaskCreateScreen(),
