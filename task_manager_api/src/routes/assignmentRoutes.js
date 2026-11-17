@@ -3,6 +3,8 @@ const router = express.Router();
 const assignmentController = require('../controllers/assignmentController');
 const authMiddleware = require('../middleware/authMiddleware');
 
-router.post('/assign', authMiddleware, assignmentController.assignTask);
+router.use(authMiddleware);
+
+router.post('/assign', assignmentController.addAssignees);
 
 module.exports = router;
